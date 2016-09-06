@@ -1,0 +1,10 @@
+.wrape_container .embed{
+	display:none;
+}
+.wrape_container optgroup option:first-child {
+    margin-top: -17px;
+}
+
+.wrape_container optgroup option {
+    margin-left: -15.5px;
+}
