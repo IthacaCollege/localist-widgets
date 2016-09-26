@@ -1,982 +1,1086 @@
 <?php
 
-function localist_permission()
-{
-	return array(
-		'create localist form permissions' => array(
-			'title' => t('Localist Form Settings.'),
-			'description' => t('Perform Localist Form Permissions.')
-			),
-		);
-}
-function localist_menu()
-{
-	$items = array();
-	$items['admin/config/system/localist'] = array(
-		'description' => t('Create new Localist Blocks.'),
-		'page callback' => 'drupal_get_form',
-		'page arguments' => array('my_localist_form'),
-		'title' => 'Localist Calendar',
-		'access arguments' => array('create localist form permissions'),
-		'access callback' => TRUE,
-		//'type' => MENU_LOCAL_TASK,
-		);
-	$items['admin/config/system/localist/create-block-localist'] = array(
-			'title' => 'Localist Calendar',
-		    'access callback' => TRUE,
-		    'type' => MENU_DEFAULT_LOCAL_TASK,
-		    'weight' => -10,
-		  );
-  $items['admin/config/system/localist/blocks-config-localist'] = array(
-		    'title' => t('Blocks Configuration'),
-		    'page callback' => 'blocks_localist_listing_form',
-		    'access callback' => TRUE,
-		    'type' => MENU_LOCAL_TASK,
-		    'weight' => 0,
+/**
+ * @file
+ * Localist Widget module.
+ *
+ * Allows a user to create and manage blocks containing Localist widgets.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function localist_permission() {
+  return array(
+    'create localist form permissions' => array(
+      'title'       => t('Localist Form Settings.'),
+      'description' => t('Perform Localist Form Permissions.'),
+    ),
   );
-  $items['save/lurl'] = array(
-  	'page callback' => 'save_lurl',
-  	'type' => MENU_LOCAL_TASK,
-  	'access arguments' => array('create localist form permissions'),
-
-  	);
-
-	return $items;
-}
-function my_localist_form($form, &$form_state)
-{
-	global $base_url;
-	$form = array();
-	$form['#attached']['css'] = array(
-		  drupal_get_path('module', 'localist') . '/css/localist.css',
-		);
-	$form['#attached']['js'] = array(
-		  drupal_get_path('module', 'localist') . '/js/localist.js',
-		);
-
-	$edit_bid = @$_GET['id'];
-	if(isset($edit_bid))
-	{
-		$search_data = db_select('localist_blocks_data', 'lbd')
-			  ->fields('lbd')
-			  ->condition('block_id', $edit_bid,'=')
-			  ->execute()
-			  ->fetchAll();
-
-		foreach($search_data as $key => $val)
-		{
-		  	$block_data[] = unserialize($val->data);
-		}
-		foreach($block_data as $key2 => $val2)
-		{
-			$data_values[] =  $val2['values'];
-			$data_inputs[] =  $val2['input'];
-		}
-
-
-		foreach($data_inputs as $fkey => $fval)
-		{
-			$filter_area = @$fval['filter'];
-			$filters_area_excluded = @$fval['exclude_filter'];
-			if(!empty($fval['groups'])){
-				$groups = @$fval['groups'];
-			}else{
-				$groups='';
-			}
-			if(!empty($fval['place'])){
-				$places = @$fval['place'];
-			}else{$places='';}
-
-		}
-
-		$form['filters_block']=array(
-				'#type'=>'markup',
-				'#prefix'=>'<div class="filters_block">'
-		);
-
-		if(!empty($filter_area)){
-			foreach($filter_area as $fkey3 => $fval3)
-			{
-				foreach($fval3 as $k=>$v){
-					$form['filters-'.$fkey3.$k]=array(
-						'#type'=>'hidden',
-						'#value'=>$v,
-						'#attributes'=>array('fname'=>$fkey3,'ftype'=>'filters'),
-					);
-				}
-			}
-		}
-
-		if(!empty($filters_area_excluded)){
-
-				foreach($filters_area_excluded as $fkey4 => $fval4)
-				{
-					foreach($fval4 as $k=>$va){
-					$form['ex_filter_'.$fkey4.$k] = array(
-						'#type' => 'hidden',
-						'#value' => $va,
-						'#attributes' => array('ftype' => 'exclude_filters','fname'=>$fkey4),
-						);
-					}
-				}
-		}
-		$form['filters_block1']=array(
-				'#type'=>'markup',
-				'#prefix'=>'</div>'
-		);
-	}
-
-		if(isset($_GET['id']))
-		{
-			if(isset($data_values[0]['url'])){
-				$loc_url = $data_values[0]['url'];
-			}else{
-				$loc_url='';
-			}
-			if(isset($data_values[0]['template'])){
-				$temp = $data_values[0]['template'];
-			}else{
-				$temp='';
-			}
-			if(isset($data_values[0]['community'])){
-				$comm = $data_values[0]['community'];
-			}else{
-				$comm='';
-			}
-			if(isset($data_values[0]['results'])){
-				$res = $data_values[0]['results'];
-			}else{
-				$res='';
-			}
-			if(isset($data_values[0]['day'])){
-				$dayah = $data_values[0]['day'];
-			}else{
-				$dayah='';
-			}
-			if(isset($data_values[0]['keywords'])){
-				$keys = $data_values[0]['keywords'];
-			}else{
-				$keys='';
-			}
-
-			$feat = $data_values[0]['features'];
-			$spons = $data_values[0]['sponsored'];
-
-			$inst = $data_values[0]['instances'];
-
-			$mat = $data_values[0]['match'];
-
-			$hidev = $data_values[0]['past_event'];
-
- 			$wtype = $data_values[0]['wtype'];
- 			$wstyle = $data_values[0]['wstyle'];
- 			$h_desc = $data_values[0]['h_desc'];
- 			$t_desc = $data_values[0]['t_desc'];
- 			$r_desc = $data_values[0]['r_desc'];
- 			$h_img = $data_values[0]['h_img'];
- 			$h_et = $data_values[0]['h_et'];
- 			$h_fd = $data_values[0]['h_fd'];
- 			$olnw = $data_values[0]['olnw'];
-			if(isset($data_values[0]['blk_name'])){
-				$blk_name = $data_values[0]['blk_name'];
-			}else{
-				$blk_name='';
-			}
- 			$status = 'edit';
-
-
- 		}
- 		else
- 		{
-			$loc_url = variable_get('localist_url');
-			$temp = '';
-			$comm = '';
-			$res = '50';
-
-			$dayah = '31';
-			$keys = '';
-			$feat = '';
-			$spons = '';
-
-			$inst = '';
-
-			$mat = '';
-
-			$hidev = '';
-
- 			$wtype = '';
- 			$wstyle = '';
- 			$h_desc = '';
- 			$t_desc = '';
- 			$r_desc = '';
- 			$h_img = '';
- 			$h_et = '';
- 			$h_fd = '';
- 			$olnw = '';
- 			$blk_name = '';
- 			$status = 'new';
-			$groups='';
-			$places='';
- 		}
-	$form['#attributes'] = array('status' => $status);
-	$form['err_markup'] = array(
-		'#type' => 'markup',
-		'#prefix' => '<div id="wrong-url">',
-		'#suffix' => '</div>',
-		);
-	$form['head_markup'] = array(
-		'#type' => 'markup',
-		'#prefix' => '<div class="white_background"><div class="border">',
-		);
-	if(isset($_GET['id'])){
-		$form['localist_id'] = array(
-		'#type' => 'hidden',
-		'#value'=>$_GET['id'],
-
-		);
-		$form['widget_id'] = array(
-		'#type' => 'hidden'
-		);
-	}
-
-	$form['header_fieldset']['header_markup0'] = array(
-		'#type' => 'markup',
-		'#prefix' => '<div class="wrape_container"><h4 style="border-bottom: 1px solid #bebfb9; padding-bottom: 5px;">Widget Builder</h4>',
-		);
-
-	$form['url'] = array(
-		'#type' => 'textfield',
-		'#title' => t('Localist Calendar URL '),
-		'#default_value' => $loc_url,
-		'#attributes' => array('placeholder' => t('Enter your Localist Calendar URL')),
-		'#prefix' => '<div class="wrape">',
-		'#suffix' => '</div></div>',
-		);
-
-	$form['config_fields'] = array(
-		'#type' => 'markup',
-		'#prefix' => '<a href="javascript:void(0)" class="button" id="config-localist-fields">Configure Block </a>'
-		);
-//check variable_get('localist_url') is set or not...
-	if(variable_get('localist_url') !=''){
-			if($status == 'new'){
-				$url=variable_get('localist_url').'/api/2/';
-			}else{
-				$url=$loc_url.'/api/2/';
-			}
-
-			$q='?pp=100';
-			$form['widget_fieldset'] = array(
-				'#type' => 'markup',
-				'#prefix' => '<div style="display:none" id="widget-data">',
-				);
-			$form['blk_name'] = array(
-				'#type' => 'textfield',
-				'#default_value' => $blk_name,
-				'#title' => t('Block Name'),
-				'#required' => TRUE,
-				);
-
-
-			$form['header_markup'] = array(
-				'#type' => 'markup',
-				'#prefix' => '<div class="wrape_container">',
-				);
-			$form['template'] = array(
-				'#type' => 'select',
-				'#prefix' => '<div class="wrape" style="display:none;">',
-				'#suffix' => '</div>',
-				'#title' => t('Template'),
-				'#attributes' => array('sv' => $temp),
-				'#validated' => TRUE,
-				'#options' => array(0 => '- None -'),
-
-				);
-				//community here...
-						if(isset($url)){
-							if( $cached = cache_get($url.'organizations'.$q, 'cache')){
-								$str=$cached->data;
-
-							}else{
-								$ch = curl_init();
-								curl_setopt($ch, CURLOPT_URL, $url.'organizations'.$q);
-								curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-								$str = curl_exec($ch);
-								curl_close($ch);
-								cache_set($url.'organizations'.$q,$str,'cache', 60*60*24);
-							}
-							if(isset($str)){
-								$result=array();
-								$data=json_decode($str);
-								if(isset($data->organizations)){
-								foreach(@$data->organizations as $k => $v){
-										$id = $v->organization->id;
-										$name = $v->organization->urlname;
-										$form['organization_name'] = array(
-												'#type' => 'hidden',
-												'#value'=>$name,
-												);
-										if(isset($id)){
-											$urlobj = $url.'organizations/'.$id.'/communities'.$q;
-											if( $cached = cache_get($url.'organizations/'.$id.'/communities'.$q, 'cache')){
-												$communities=$cached->data;
-
-											}else{
-												$ch = curl_init();
-												curl_setopt($ch, CURLOPT_URL, $url.'organizations/'.$id.'/communities'.$q);
-												curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-												$communities = curl_exec($ch);
-												curl_close($ch);
-												cache_set($url.'organizations/'.$id.'/communities'.$q,$communities,'cache', time() + 60*60*24);
-											}
-											$communities=json_decode($communities);
-											$result=localist_getAllresult($url.'organizations/'.$id.'/communities'.$q,$communities->page->total);
-
-											if(isset($result) && !empty($result)){
-												$form['community'] = array(
-													'#type' => 'select',
-													'#title' => t('Community'),
-													'#prefix' => '<div class="wrape">',
-													'#suffix' => '</div>',
-													'#validated' => TRUE,
-													'#options' => array(0 => '- None -',$result),
-													'#default_value'=>$comm,
-													);
-											}
-										}
-								} }
-
-							}
-						}
-
-
-
-			$form['results'] = array(
-				'#type' => 'textfield',
-				'#title' => t('Number of Results'),
-				'#default_value' => $res,
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				);
-			$form['day'] = array(
-				'#type' => 'textfield',
-				'#title' => t('Days Ahead'),
-				'#default_value' => $dayah,
-				);
-
-			//groups here...
-					if(isset($url)){
-						$result=array();
-						$urlobj=$url.'groups'.$q;
-						if( $cached = cache_get($url.'groups'.$q, 'cache')){
-							$grps=$cached->data;
-						}else{
-							$ch = curl_init();
-							curl_setopt($ch, CURLOPT_URL, $url.'groups'.$q);
-							curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-							$grps = curl_exec($ch);
-							curl_close($ch);
-							cache_set($url.'groups'.$q,$grps, 'cache', time() + 60*60*24);
-						}
-						if(isset($grps)){
-							$grs=json_decode($grps);
-							$result=localist_getAllresult($urlobj,@$grs->page->total);
-							if(isset($result) && !empty($result)){
-								$form['groups'] = array(
-								'#type' => 'select',
-								'#prefix' => '<div class="wrape">',
-								'#suffix' => '</div>',
-								'#title' => t('Groups'),
-								'#validated' => TRUE,
-								'#options' => array(' '=> '-All-',$result),
-								'#size' => 4,
-								'#multiple' => TRUE,
-								'#default_value'=>$groups,
-								'#attributes'=>array('ftype'=>'groups'),
-								);
-							}
-						}
-					}
-
-
-			$form['keywords'] = array(
-				'#type' => 'textfield',
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				'#default_value' => $keys,
-				'#attributes' => array('placeholder' => t('Separate keywords with commas')),
-				'#title' => t('Keywords and Tags'),
-				);
-			$form['features'] = array(
-				'#type' => 'checkbox',
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				'#default_value' => $feat,
-				'#title' => t('Only Show Featured')
-				);
-			$form['sponsored'] = array(
-				'#type' => 'checkbox',
-				'#prefix' => '<div class="wrape">',
-				'#default_value' => $spons,
-				'#suffix' => '</div>',
-				'#title' => t('Only Show Sponsored')
-				);
-			$form['instances'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $inst,
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				'#title' => t('Include All Matching Instances'),
-				);
-
-			//place here...
-					if(isset($url)){
-						$result=array();
-						$urlobj=$url.'places'.$q;
-						if( $cached = cache_get($url.'places'.$q, 'cache')){
-							$plcs=$cached->data;
-						}else{
-							$ch = curl_init();
-							curl_setopt($ch, CURLOPT_URL, $url.'places'.$q);
-							curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-							$plcs = curl_exec($ch);
-							curl_close($ch);
-							cache_set($url.'places'.$q,$plcs, 'cache', time() + 60*60*24);
-						}
-						//$plcs = file_get_contents($url.'places'.$q);
-						if(isset($plcs)){
-							$pls=json_decode($plcs);
-							$result=localist_getAllresult($urlobj,@$pls->page->total);
-							if(isset($result) && !empty($result)){
-								$form['place'] = array(
-								'#type' => 'select',
-								'#prefix' => '<div class="wrape">',
-								'#suffix' => '</div>',
-								'#validated' => TRUE,
-								'#options' => array(' '=> '-All-',$result),
-								'#title' => t('Places'),
-								'#size' => 4,
-								'#multiple' => TRUE,
-								'#default_value'=>$places,
-								'#attributes'=>array('ftype'=>'places'),
-								);
-							}
-						}
-					}
-
-			$form['filter_labels'] = array(
-				'#type' => 'markup',
-				'#prefix' => '<div class="all_filters">',
-
-				);
-			//All filters here...
-					if(isset($url)){
-						$lable=array();
-						//$filter_arr=array();
-						if( $cached = cache_get($url.'events/labels', 'cache')){
-							$lables=$cached->data;
-						}else{
-							$ch = curl_init();
-							curl_setopt($ch, CURLOPT_URL, $url.'events/labels');
-							curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-							$lables = curl_exec($ch);
-							curl_close($ch);
-							cache_set($url.'events/labels',$lables, 'cache', time() + 60*60*24);
-						}
-						$lbls=json_decode($lables);
-						if(isset($lbls->filters)){
-						foreach(@$lbls->filters as $x => $y){
-								$lable[$x]=$y;
-						}}
-						if( $cached = cache_get($url.'events/filters', 'cache')){
-							$filters=$cached->data;
-						}else{
-							$ch = curl_init();
-							curl_setopt($ch, CURLOPT_URL, $url.'events/filters');
-							curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-							$filters = curl_exec($ch);
-							curl_close($ch);
-							cache_set($url.'events/filters',$filters, 'cache', time() + 60*60*24);
-						}
-						$all_filters=json_decode($filters);
-						if(!empty($all_filters)){
-						foreach($all_filters as $s => $filter){
-							$filter_arr = array();
-							$options=array();
-							$child_array=array();
-							foreach($filter as $k => $w){
-								if($w->parent_id == ''){
-									$filter_arr['parent'][$w->id]=$w->name;
-								}else{
-									$filter_arr[$w->parent_id][$w->id]=$w->name;
-								}
-							}
-							asort ($filter_arr['parent']);
-							foreach($filter_arr['parent'] as $k =>$val){
-								$options[$k]=$val;
-								$child_array=localist_filters_level_call($k,$filter_arr,1);
-								if(isset($child_array) && !empty($child_array)){
-									foreach($child_array  as $c => $j){
-										$options[$c]=$j;
-									}
-								}
-							}
-							$form['filter_'.$s] = array(
-									'#type' => 'select',
-									'#title' => t(@$lable[$s]),
-									'#attributes' => array('fname'=>$s),
-									'#validated' => TRUE,
-									'#prefix' => '<div class="wrape" >',
-									'#suffix' => '</div>',
-									'#options' => array(' '=> '-All-',$options),
-									'#size' => 4,
-									'#multiple' => TRUE,
-									'#name'=>'filter['.$s.']',
-									);
-						}}
-
-					}
-			$form['filter_labels1'] = array(
-				'#type' => 'markup',
-				'#prefix' => '</div>',
-				);
-			$form['match']  = array(
-				'#type' => 'select',
-				'#default_value' => $mat,
-				//'#attributes' => array('sv' => $mat),
-				'#empty_option' => t('--At least one keyword or tag, and one filter item--'),
-				'#options' => array('any' => 'Any keyword, tag, or filter item', 'all' => 'All keywords, tags, and filter items'),
-				'#title' => t('Match'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div></div>',
-				);
-
-			$form['middle_markup'] = array(
-				'#type' => 'markup',
-				'#prefix' => '<h4 style="border-bottom: 1px solid #bebfb9;padding-bottom: 5px; ">Excluded Content</h4><div class="wrape_container"><div class="all_exclude_filters">'
-				);
-				//All exclude filters here...
-					if(isset($url)){
-						if(!empty($all_filters)){
-						foreach($all_filters as $s => $filter){
-							$filter_arr = array();
-							$options=array();
-							$child_array=array();
-							foreach($filter as $k => $w){
-								if($w->parent_id == ''){
-									$filter_arr['parent'][$w->id]=$w->name;
-								}else{
-									$filter_arr[$w->parent_id][$w->id]=$w->name;
-								}
-							}
-							asort ($filter_arr['parent']);
-							foreach($filter_arr['parent'] as $k =>$val){
-								$options[$k]=$val;
-								$child_array=localist_filters_level_call($k,$filter_arr,1);
-								if(isset($child_array) && !empty($child_array)){
-									foreach($child_array  as $c => $j){
-										$options[$c]=$j;
-									}
-								}
-							}
-							$form['exclude_filter_'.$s] = array(
-									'#type' => 'select',
-									'#title' => t($lable[$s]),
-									'#attributes' => array('fname'=>$s),
-									'#validated' => TRUE,
-									'#prefix' => '<div class="wrape" >',
-									'#suffix' => '</div>',
-									'#options' => array(' '=> '-None-',$options),
-									'#size' => 4,
-									'#multiple' => TRUE,
-									'#name'=>'exclude_filter['.$s.']',
-									);
-						}}
-
-					}
-			$form['middle_markup1'] = array(
-				'#type' => 'markup',
-				'#prefix' => '</div>'
-				);
-			$form['past_event'] = array(
-				'#type' => 'checkbox',
-				'#title' => t('Hide Past Events'),
-				'#default_value' => $hidev,
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				);
-			$form['dp_fieldset'] = array(
-				'#type' => 'markup',
-
-				);
-			$form['dp_markup'] = array(
-				'#type' => 'markup',
-				'#prefix' => '<h4 style="border-bottom: 1px solid #bebfb9; padding-bottom: 5px;">Display Options</h4><div class="wrape_container">'
-				);
-			$form['wtype'] = array(
-				'#type' => 'select',
-				'#title' => t('Widget Type'),
-				'#default_value' => $wtype,
-				//'#attributes' => array('sv' => $evtype),
-				'#prefix' => '<div class="wrape">',
-				'#validated' => TRUE,
-				'#suffix' => '</div>',
-				'#options' => array('view' => 'List', 'combo' => 'Mini Calendar + List'),
-				);
-
-			$form['wstyle'] = array(
-				'#type' => 'select',
-				'#title' => t('Style'),
-				'#default_value' => $wstyle,
-				//'#attributes' => array('sv' => $evtype),
-				'#prefix' => '<div class="wrape">',
-				'#validated' => TRUE,
-				'#suffix' => '</div>',
-				'#options' => array('modern' => 'Modern', ' ' => 'Classic','card' => 'Card', 'none' => 'None'),
-				);
-
-			$form['h_desc'] = array(
-				'#type' => 'checkbox',
-				'#title' => t('Hide Descriptions'),
-				'#default_value' => $h_desc,
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				);
-
-			$form['t_desc'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $t_desc,
-				'#title' => t('Truncate Descriptions'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				'#states' => array(
-					'visible' => array(
-					  ':input[name="h_desc"]' => array("checked" => false),
-					),),
-				);
-
-			$form['r_desc'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $r_desc,
-				'#title' => t('Render HTML in Descriptions'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				'#states' => array(
-					'visible' => array(
-					  ':input[name="h_desc"]' => array("checked" => false),
-					),),
-				);
-
-
-			$form['h_img'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $h_img,
-				'#title' => t('Hide Event Images'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				);
-
-
-			$form['h_et'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $h_et,
-				'#title' => t('Hide Event Times'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				);
-
-			$form['h_fd'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $h_fd,
-				'#title' => t('Hide Filter Dropdown'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				'#states' => array(
-					'visible' => array(
-					  ':input[name="wtype"]' => array('value' => 'combo'),
-					),
-				  ),
-				);
-
-			$form['olnw'] = array(
-				'#type' => 'checkbox',
-				'#default_value' => $olnw,
-				'#title' => t('Open Links in New Window'),
-				'#prefix' => '<div class="wrape">',
-				'#suffix' => '</div>',
-				);
-
-
-			$form['embed_tag'] = array(
-				'#type' => 'textarea',
-				'#title' => t('Widget Embed Code'),
-				'#attributes' => array('id' => 'embed', 'onclick' => "this.focus();this.select()", 'readonly' => 'readonly'),
-				'#resizable' => false,
-				'#prefix' => '<div class="wrape embed">',
-				'#suffix' => '</div>',
-				);
-
-
-			if(isset($_GET['id'])){
-				$submit_text = 'Update Block';
-			}else{
-				$submit_text = 'Save as New Block';
-			}
-			$form['save_widget'] = array(
-				'#type' => 'submit',
-				'#value' => t($submit_text),
-				);
-			$form['genrate_embedded_code'] = array(
-				'#type' => 'markup',
-				'#prefix' => '<a class="button" href="javascript:void(0)" name="genrate_embedded_code" id="generation_code"> Genrate Embedded Code</a>',
-				);
-			$form['footer_markup'] = array(
-				'#type' => 'markup',
-				'#suffix' => '</div></div></div>'
-				);
-	}
-	return $form;
-
-}
-function save_lurl(&$form_state, $form)
-{
-	$response = localist_check_localist_validity($_GET['lurl']);
-	if($response == 'true'){
-		variable_set('localist_url', $_GET['lurl']);
-		echo 1;
-	}else{
-		echo 0;
-	}
 }
 
-function my_localist_form_submit($form, &$form_state)
-{
-	variable_set('localist_url' , $form_state['values']['url']);
+/**
+ * Implements hook_menu().
+ */
+function localist_menu() {
+  $items                                                        = array();
+  $items['admin/config/system/localist']                        = array(
+    'description'      => 'Create new Localist Blocks.',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('localist_my_form'),
+    'title'            => 'Localist Calendar',
+    'access arguments' => array('create localist form permissions'),
+    // 'type' => MENU_LOCAL_TASK,.
+  );
+  $items['admin/config/system/localist/create-block-localist']  = array(
+    'title'           => 'Localist Calendar',
+    'access arguments' => array('create localist form permissions'),
+    'type'            => MENU_DEFAULT_LOCAL_TASK,
+    'weight'          => -10,
+  );
+  $items['admin/config/system/localist/blocks-config-localist'] = array(
+    'title'           => 'Blocks Configuration',
+    'page callback'   => 'localist_blocks_listing_form',
+    'access arguments' => array('create localist form permissions'),
+    'type'            => MENU_LOCAL_TASK,
+    'weight'          => 0,
+  );
+  $items['save/lurl']                                           = array(
+    'page callback'    => 'localist_save_lurl',
+    'type'             => MENU_LOCAL_TASK,
+    'access arguments' => array('create localist form permissions'),
+  );
 
-	$data = $form_state;
-
-	$blk_name = $form_state['values']['blk_name'];
-	form_load_include($form_state, 'inc', 'block', 'block.admin');
-
-
-	$genr = $form_state['values']['embed_tag'];
-
-if($form['#attributes']['status'] == 'new'){
-global $base_url;
-
-	$get_block_id = db_query("SELECT id FROM `localist_blocks_data` ORDER BY id DESC LIMIT 1")->fetchAll();
-
-	if(empty($get_block_id))
-	{
-		$b_id = 1;
-	}
-	else{
-		$b_id = $get_block_id[0]->id+1;
-	}
-
-/*echo "<pre>";
-print_r($get_block_id_description);exit;
-*/
-	$title = $blk_name;
-	$description = $blk_name.'('.$b_id.')';
-	 $form_state = array();
-	  $form_state['values'] = array(
-	    'title' => $title,
-	    'info' => $description,
-	    'visibility' => '0',
-	    'pages' => NULL,
-	    'custom' => '0',
-	    // The block isn't visible initially
-	    'regions' => array(
-	        'seven' => '-1',
-	        'stark' => '-1',
-	        'bartik'=> '-1',
-	      ),
-	    'body' => array(
-	        'value' => $genr,
-	        'format' => 'full_html',
-	      ),
-	  );
-	drupal_form_submit('block_add_block_form', $form_state);
-	$get_block_id = db_query("SELECT bid FROM `block_custom` ORDER BY bid DESC LIMIT 1")->fetchAll();
-	$b_id = $get_block_id[0]->bid;
-	if(isset($b_id)){
-		insert_data_to_localist_table($data, $b_id);
-	}
-
-	drupal_goto($base_url."/admin/config/system/localist");
-
-	}
-else if($form['#attributes']['status'] == 'edit')
-{
-	global $base_url;
-	$delta_id = $_GET['id'];
-	if(isset($delta_id)){
-		$result=db_update('block_custom')
-	          ->fields(array(
-	            'body' => $genr,
-				'info' => @$blk_name.'('.@$b_id.')',
-	        ))
-	          ->condition('bid', $delta_id, '=')
-	          ->execute();
-
-	    $result2 = db_update('block')
-	    			->fields(array(
-	    				'title' => $blk_name,
-
-	    				))
-	    			->condition('delta', $delta_id, '=')
-	    			->execute();
-	}
-
-	$form_state['http_redirect()ect'] = $base_url."/admin/config/system/localist";
-
-	update_data_to_localist_table($data,$delta_id);
-	drupal_set_message('Your Localist Calendar block has been updated');
-	drupal_goto($base_url."/admin/config/system/localist");
+  return $items;
 }
 
-}
-function insert_data_to_localist_table($data, $bid)
-{
-	$result=db_insert('localist_blocks_data')
-          ->fields(array(
-            'data' => serialize($data),
-            'block_id' => $bid,
-        ))->execute();
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function localist_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  // Add action link to create a block on the blocks configuration page.
+  if ($root_path == 'admin/config/system/localist/blocks-config-localist') {
+    $item = menu_get_item('admin/config/system/localist/create-block-localist');
+    if ($item['access']) {
+      $item['title'] = t('Create New Block');
 
-	return $result;
-}
-function update_data_to_localist_table($data,$delta_id)
-{
-	//$block_id = $_GET['id'];
-	if(isset($delta_id)){
-		$result=db_update('localist_blocks_data')
-	          ->fields(array(
-	            'data' => serialize($data),
-	            'block_id' => $delta_id,
-	        ))
-	          ->condition('block_id', $delta_id, '=')
-	          ->execute();
-
-		return $result;
-	}
-}
-function blocks_localist_listing_form()
-{
-	$search_data = db_select('localist_blocks_data', 'lbd')
-			  ->fields('lbd')
-			   ->execute()
-			  ->fetchAll();
-	foreach($search_data as $key => $val){
-		$block_data[] = unserialize($val->data);
-		$block_id[] = $val->block_id;
-	}
-	if(!empty($block_data)){
-	foreach($block_data as $key2 => $val2){
-		$data_values[] =  $val2['values'];
-		$data_inputs[] =  $val2['input'];
-	}}
-	global $base_url;
-	$form = array();
-if(!empty($data_values)){
-foreach($data_values as $k3 => $v3){
-		$block_names[] = $v3['blk_name'];
-	}
-}
-$form['edit_block_markup']  = array(
-	'#type' => 'markup',
-	'#prefix' => '<ul class="action-links"><li><a href="'.$base_url.'/admin/config/system/localist">Create New Block</a></li></ul><h4 style="border-bottom: 1px solid #bebfb9; padding-bottom: 5px;">Update Block Configurations</h4><table id="blocks" class="sticky-enabled tabledrag-processed tableheader-processed sticky-table"><thead><tr><th> Block Name </th><th> Operations </th></tr></thead><tbody>'
-	);
-	if(!empty($block_names)){
-foreach($block_names as $r=>$u){
-	$bl_id[$block_id[$r]]=$u;
-	} }
-if(!empty($bl_id)){
-	foreach($bl_id as $k2 => $v2){
-		$form['blocks_markup'.$k2] = array(
-			'#type' => 'markup',
-			'#prefix' => '<tr><td>'.$v2.'</td> <td><a href="'.$base_url.'/admin/config/system/localist?id='.$k2.'"> Configure </a> </td></tr>',
-			);
-	}
-}
-$form['footer_markup2'] = array(
-	'#type' => 'markup',
-	'#suffix' => '</tbody></table>',
-	);
-	return $form;
+      $data['actions']['output'][] = array(
+        '#theme' => 'menu_local_action',
+        '#link' => $item,
+      );
+    }
+  }
 }
 
-//get all results....
-function localist_getAllresult($url,$total){
-	if(isset($url)){
-	$res=array();
-	for($i=1;$i<=$total;$i++){
-		if( $cached = cache_get($url.'&page='.$i, 'cache')){
-			$json=$cached->data;
-		}else{
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $url.'&page='.$i);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			$json = curl_exec($ch);
-			curl_close($ch);
-			cache_set($url.'&page='.$i,$json, 'cache', time() + 60*60*24);
-		}
+/**
+ * Form constructor for Localist Widget blocks.
+ *
+ * @see localist_my_form_submit()
+ *
+ * @ingroup forms
+ */
+function localist_my_form($form, &$form_state) {
+  $form                     = array();
+  $form['#attached']['css'] = array(
+    drupal_get_path('module', 'localist') . '/css/localist.css',
+  );
+  $form['#attached']['js']  = array(
+    drupal_get_path('module', 'localist') . '/js/localist.js',
+  );
 
-		//$json = file_get_contents($url.'&page='.$i);
-		$jsn_opt=json_decode($json);
-		if(isset($jsn_opt)){
-			foreach($jsn_opt as $k => $jsn){
-				if(is_array($jsn) || is_object($jsn)){
-				 foreach($jsn as $j => $v){
-						if (is_array($v) || is_object($v))
-						{	foreach($v as $m => $n){
-								$name=$v->$m->name;
-								$urlname=$v->$m->urlname;
-								$res[$urlname]=$name;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return $res;
-	}
+  $edit_bid = @$_GET['id'];
+  if (isset($edit_bid)) {
+    $search_data = db_select('localist_blocks_data', 'lbd')
+      ->fields('lbd')
+      ->condition('block_id', $edit_bid, '=')
+      ->execute()
+      ->fetchAll();
+
+    foreach ($search_data as $val) {
+      $block_data[] = unserialize($val->data);
+    }
+    foreach ($block_data as $val2) {
+      $data_values[] = $val2['values'];
+      $data_inputs[] = $val2['input'];
+    }
+
+    foreach ($data_inputs as $fval) {
+      $filter_area           = @$fval['filter'];
+      $filters_area_excluded = @$fval['exclude_filter'];
+      if (!empty($fval['groups'])) {
+        $groups = @$fval['groups'];
+      }
+      else {
+        $groups = '';
+      }
+      if (!empty($fval['place'])) {
+        $places = @$fval['place'];
+      }
+      else {
+        $places = '';
+      }
+
+    }
+
+    $form['filters_block'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '<div class="filters_block">',
+    );
+
+    if (!empty($filter_area)) {
+      foreach ($filter_area as $fkey3 => $fval3) {
+        foreach ($fval3 as $k => $v) {
+          $form['filters-' . $fkey3 . $k] = array(
+            '#type'       => 'hidden',
+            '#value'      => $v,
+            '#attributes' => array('fname' => $fkey3, 'ftype' => 'filters'),
+          );
+        }
+      }
+    }
+
+    if (!empty($filters_area_excluded)) {
+
+      foreach ($filters_area_excluded as $fkey4 => $fval4) {
+        foreach ($fval4 as $k => $va) {
+          $form['ex_filter_' . $fkey4 . $k] = array(
+            '#type'       => 'hidden',
+            '#value'      => $va,
+            '#attributes' => array(
+              'ftype' => 'exclude_filters',
+              'fname' => $fkey4,
+            ),
+          );
+        }
+      }
+    }
+    $form['filters_block1'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '</div>',
+    );
+  }
+
+  if (isset($_GET['id'])) {
+    if (isset($data_values[0]['url'])) {
+      $loc_url = $data_values[0]['url'];
+    }
+    else {
+      $loc_url = '';
+    }
+    if (isset($data_values[0]['template'])) {
+      $temp = $data_values[0]['template'];
+    }
+    else {
+      $temp = '';
+    }
+    if (isset($data_values[0]['community'])) {
+      $comm = $data_values[0]['community'];
+    }
+    else {
+      $comm = '';
+    }
+    if (isset($data_values[0]['results'])) {
+      $res = $data_values[0]['results'];
+    }
+    else {
+      $res = '';
+    }
+    if (isset($data_values[0]['day'])) {
+      $dayah = $data_values[0]['day'];
+    }
+    else {
+      $dayah = '';
+    }
+    if (isset($data_values[0]['keywords'])) {
+      $keys = $data_values[0]['keywords'];
+    }
+    else {
+      $keys = '';
+    }
+
+    $feat  = $data_values[0]['features'];
+    $spons = $data_values[0]['sponsored'];
+
+    $inst = $data_values[0]['instances'];
+
+    $mat = $data_values[0]['match'];
+
+    $hidev = $data_values[0]['past_event'];
+
+    $wtype  = $data_values[0]['wtype'];
+    $wstyle = $data_values[0]['wstyle'];
+    $h_desc = $data_values[0]['h_desc'];
+    $t_desc = $data_values[0]['t_desc'];
+    $r_desc = $data_values[0]['r_desc'];
+    $h_img  = $data_values[0]['h_img'];
+    $h_et   = $data_values[0]['h_et'];
+    $h_fd   = $data_values[0]['h_fd'];
+    $olnw   = $data_values[0]['olnw'];
+    if (isset($data_values[0]['blk_name'])) {
+      $blk_name = $data_values[0]['blk_name'];
+    }
+    else {
+      $blk_name = '';
+    }
+    $status = 'edit';
+
+  }
+  else {
+    $loc_url = variable_get('localist_url');
+    $temp    = '';
+    $comm    = '';
+    $res     = '50';
+
+    $dayah = '31';
+    $keys  = '';
+    $feat  = '';
+    $spons = '';
+
+    $inst = '';
+
+    $mat = '';
+
+    $hidev = '';
+
+    $wtype    = '';
+    $wstyle   = '';
+    $h_desc   = '';
+    $t_desc   = '';
+    $r_desc   = '';
+    $h_img    = '';
+    $h_et     = '';
+    $h_fd     = '';
+    $olnw     = '';
+    $blk_name = '';
+    $status   = 'new';
+    $groups   = '';
+    $places   = '';
+  }
+  $form['#attributes'] = array('status' => $status);
+  $form['err_markup']  = array(
+    '#type'   => 'markup',
+    '#prefix' => '<div id="wrong-url">',
+    '#suffix' => '</div>',
+  );
+  $form['head_markup'] = array(
+    '#type'   => 'markup',
+    '#prefix' => '<div class="white_background"><div class="border">',
+  );
+  if (isset($_GET['id'])) {
+    $form['localist_id'] = array(
+      '#type'  => 'hidden',
+      '#value' => $_GET['id'],
+
+    );
+    $form['widget_id']   = array(
+      '#type' => 'hidden',
+    );
+  }
+
+  $form['header_fieldset']['header_markup0'] = array(
+    '#type'   => 'markup',
+    '#prefix' => '<div class="wrape_container"><h4 style="border-bottom: 1px solid #bebfb9; padding-bottom: 5px;">' . t('Widget Builder') . '</h4>',
+  );
+
+  $form['url'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Localist Calendar URL'),
+    '#default_value' => $loc_url,
+    '#attributes'    => array('placeholder' => t('Enter your Localist Calendar URL')),
+    '#prefix'        => '<div class="wrape">',
+    '#suffix'        => '</div></div>',
+  );
+
+  $form['config_fields'] = array(
+    '#type'   => 'markup',
+    '#prefix' => '<a href="javascript:void(0)" class="button" id="config-localist-fields">' . t('Configure Block') . '</a>',
+  );
+  // Check variable_get('localist_url') is set or not...
+  if (variable_get('localist_url') != '') {
+    if ($status == 'new') {
+      $url = variable_get('localist_url') . '/api/2/';
+    }
+    else {
+      $url = $loc_url . '/api/2/';
+    }
+
+    $q                       = '?pp=100';
+    $form['widget_fieldset'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '<div style="display:none" id="widget-data">',
+    );
+    $form['blk_name']        = array(
+      '#type'          => 'textfield',
+      '#default_value' => $blk_name,
+      '#title'         => t('Block Name'),
+      '#required'      => TRUE,
+    );
+
+    $form['header_markup'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '<div class="wrape_container">',
+    );
+    $form['template']      = array(
+      '#type'       => 'select',
+      '#prefix'     => '<div class="wrape" style="display:none;">',
+      '#suffix'     => '</div>',
+      '#title'      => t('Template'),
+      '#attributes' => array('sv' => $temp),
+      '#validated'  => TRUE,
+      '#options'    => array(0 => '- None -'),
+
+    );
+    // Community here...
+    if (isset($url)) {
+      if ($cached = cache_get($url . 'organizations' . $q, 'cache')) {
+        $str = $cached->data;
+      }
+      else {
+        $request_url = $url . 'organizations' . $q;
+        $response = drupal_http_request($request_url);
+        $str = $response->data;
+        cache_set($url . 'organizations' . $q, $str, 'cache', 60 * 60 * 24);
+      }
+      if (isset($str)) {
+        $result = array();
+        $data   = json_decode($str);
+        if (isset($data->organizations)) {
+          foreach (@$data->organizations as $k => $v) {
+            $id                        = $v->organization->id;
+            $name                      = $v->organization->urlname;
+            $form['organization_name'] = array(
+              '#type'  => 'hidden',
+              '#value' => $name,
+            );
+            if (isset($id)) {
+              $urlobj = $url . 'organizations/' . $id . '/communities' . $q;
+              if ($cached = cache_get($url . 'organizations/' . $id . '/communities' . $q,
+                                      'cache')
+              ) {
+                $communities = $cached->data;
+
+              }
+              else {
+                $request_url = $url . 'organizations/' . $id . '/communities' . $q;
+                $response = drupal_http_request($request_url);
+                $communities = $response->data;
+                cache_set($url . 'organizations/' . $id . '/communities' . $q,
+                          $communities, 'cache',
+                          time() + 60 * 60 * 24);
+              }
+              $communities = json_decode($communities);
+              $result      = localist_get_all_results($url . 'organizations/' . $id . '/communities' . $q,
+                                                      $communities->page->total);
+
+              if (isset($result) && !empty($result)) {
+                $form['community'] = array(
+                  '#type'          => 'select',
+                  '#title'         => t('Community'),
+                  '#prefix'        => '<div class="wrape">',
+                  '#suffix'        => '</div>',
+                  '#validated'     => TRUE,
+                  '#options'       => array(0 => t('- None -'), $result),
+                  '#default_value' => $comm,
+                );
+              }
+            }
+          }
+        }
+
+      }
+    }
+
+    $form['results'] = array(
+      '#type'          => 'textfield',
+      '#title'         => t('Number of Results'),
+      '#default_value' => $res,
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+    );
+    $form['day']     = array(
+      '#type'          => 'textfield',
+      '#title'         => t('Days Ahead'),
+      '#default_value' => $dayah,
+    );
+
+    // Groups here...
+    if (isset($url)) {
+      $result = array();
+      $urlobj = $url . 'groups' . $q;
+      if ($cached = cache_get($url . 'groups' . $q, 'cache')) {
+        $grps = $cached->data;
+      }
+      else {
+        $request_url = $url . 'groups' . $q;
+        $response = drupal_http_request($request_url);
+        $grps = $response->data;
+        cache_set($url . 'groups' . $q, $grps, 'cache', time() + 60 * 60 * 24);
+      }
+      if (isset($grps)) {
+        $grs    = json_decode($grps);
+        $result = localist_get_all_results($urlobj, @$grs->page->total);
+        if (isset($result) && !empty($result)) {
+          $form['groups'] = array(
+            '#type'          => 'select',
+            '#prefix'        => '<div class="wrape">',
+            '#suffix'        => '</div>',
+            '#title'         => t('Groups'),
+            '#validated'     => TRUE,
+            '#options'       => array(' ' => t('-All-'), $result),
+            '#size'          => 4,
+            '#multiple'      => TRUE,
+            '#default_value' => $groups,
+            '#attributes'    => array('ftype' => 'groups'),
+          );
+        }
+      }
+    }
+
+    $form['keywords']  = array(
+      '#type'          => 'textfield',
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+      '#default_value' => $keys,
+      '#attributes'    => array('placeholder' => t('Separate keywords with commas')),
+      '#title'         => t('Keywords and Tags'),
+    );
+    $form['features']  = array(
+      '#type'          => 'checkbox',
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+      '#default_value' => $feat,
+      '#title'         => t('Only Show Featured'),
+    );
+    $form['sponsored'] = array(
+      '#type'          => 'checkbox',
+      '#prefix'        => '<div class="wrape">',
+      '#default_value' => $spons,
+      '#suffix'        => '</div>',
+      '#title'         => t('Only Show Sponsored'),
+    );
+    $form['instances'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $inst,
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+      '#title'         => t('Include All Matching Instances'),
+    );
+
+    // Place here...
+    if (isset($url)) {
+      $result = array();
+      $urlobj = $url . 'places' . $q;
+      if ($cached = cache_get($url . 'places' . $q, 'cache')) {
+        $plcs = $cached->data;
+      }
+      else {
+        $request_url = $url . 'places' . $q;
+        $response = drupal_http_request($request_url);
+        $plcs = $response->data;
+        cache_set($url . 'places' . $q, $plcs, 'cache', time() + 60 * 60 * 24);
+      }
+      // $plcs = file_get_contents($url.'places'.$q);.
+      if (isset($plcs)) {
+        $pls    = json_decode($plcs);
+        $result = localist_get_all_results($urlobj, @$pls->page->total);
+        if (isset($result) && !empty($result)) {
+          $form['place'] = array(
+            '#type'          => 'select',
+            '#prefix'        => '<div class="wrape">',
+            '#suffix'        => '</div>',
+            '#validated'     => TRUE,
+            '#options'       => array(' ' => t('-All-'), $result),
+            '#title'         => t('Places'),
+            '#size'          => 4,
+            '#multiple'      => TRUE,
+            '#default_value' => $places,
+            '#attributes'    => array('ftype' => 'places'),
+          );
+        }
+      }
+    }
+
+    $form['filter_labels'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '<div class="all_filters">',
+
+    );
+    // All filters here...
+    if (isset($url)) {
+      $lable = array();
+      // $filter_arr=array();
+      if ($cached = cache_get($url . 'events/labels', 'cache')) {
+        $lables = $cached->data;
+      }
+      else {
+        $request_url = $url . 'events/labels';
+        $response = drupal_http_request($request_url);
+        $lables = $response->data;
+        cache_set($url . 'events/labels', $lables, 'cache',
+                  time() + 60 * 60 * 24);
+      }
+      $lbls = json_decode($lables);
+      if (isset($lbls->filters)) {
+        foreach (@$lbls->filters as $x => $y) {
+          $lable[$x] = $y;
+        }
+      }
+      if ($cached = cache_get($url . 'events/filters', 'cache')) {
+        $filters = $cached->data;
+      }
+      else {
+        $request_url = $url . 'events/filters' . $q;
+        $response = drupal_http_request($request_url);
+        $filters = $response->data;
+        cache_set($url . 'events/filters', $filters, 'cache',
+                  time() + 60 * 60 * 24);
+      }
+      $all_filters = json_decode($filters);
+      if (!empty($all_filters)) {
+        foreach ($all_filters as $s => $filter) {
+          $filter_arr  = array();
+          $options     = array();
+          $child_array = array();
+          foreach ($filter as $k => $w) {
+            if ($w->parent_id == '') {
+              $filter_arr['parent'][$w->id] = $w->name;
+            }
+            else {
+              $filter_arr[$w->parent_id][$w->id] = $w->name;
+            }
+          }
+          asort($filter_arr['parent']);
+          foreach ($filter_arr['parent'] as $k => $val) {
+            $options[$k] = $val;
+            $child_array = localist_filters_level_call($k, $filter_arr, 1);
+            if (isset($child_array) && !empty($child_array)) {
+              foreach ($child_array as $c => $j) {
+                $options[$c] = $j;
+              }
+            }
+          }
+          $form['filter_' . $s] = array(
+            '#type'       => 'select',
+            '#title'      => $lable[$s],
+            '#attributes' => array('fname' => $s),
+            '#validated'  => TRUE,
+            '#prefix'     => '<div class="wrape" >',
+            '#suffix'     => '</div>',
+            '#options'    => array(' ' => t('-All-'), $options),
+            '#size'       => 4,
+            '#multiple'   => TRUE,
+            '#name'       => 'filter[' . $s . ']',
+          );
+        }
+      }
+
+    }
+    $form['filter_labels1'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '</div>',
+    );
+    $form['match']          = array(
+      '#type'          => 'select',
+      '#default_value' => $mat,
+      // '#attributes' => array('sv' => $mat),.
+      '#empty_option'  => t('--At least one keyword or tag, and one filter item--'),
+      '#options'       => array(
+        'any' => t('Any keyword, tag, or filter item'),
+        'all' => t('All keywords, tags, and filter items'),
+      ),
+      '#title'         => t('Match'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div></div>',
+    );
+
+    $form['middle_markup'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '<h4 style="border-bottom: 1px solid #bebfb9;padding-bottom: 5px; ">' . t('Excluded Content') . '</h4><div class="wrape_container"><div class="all_exclude_filters">',
+    );
+    // All exclude filters here...
+    if (isset($url)) {
+      if (!empty($all_filters)) {
+        foreach ($all_filters as $s => $filter) {
+          $filter_arr  = array();
+          $options     = array();
+          $child_array = array();
+          foreach ($filter as $k => $w) {
+            if ($w->parent_id == '') {
+              $filter_arr['parent'][$w->id] = $w->name;
+            }
+            else {
+              $filter_arr[$w->parent_id][$w->id] = $w->name;
+            }
+          }
+          asort($filter_arr['parent']);
+          foreach ($filter_arr['parent'] as $k => $val) {
+            $options[$k] = $val;
+            $child_array = localist_filters_level_call($k, $filter_arr, 1);
+            if (isset($child_array) && !empty($child_array)) {
+              foreach ($child_array as $c => $j) {
+                $options[$c] = $j;
+              }
+            }
+          }
+          $form['exclude_filter_' . $s] = array(
+            '#type'       => 'select',
+            '#title'      => $lable[$s],
+            '#attributes' => array('fname' => $s),
+            '#validated'  => TRUE,
+            '#prefix'     => '<div class="wrape" >',
+            '#suffix'     => '</div>',
+            '#options'    => array(' ' => t('-None-'), $options),
+            '#size'       => 4,
+            '#multiple'   => TRUE,
+            '#name'       => 'exclude_filter[' . $s . ']',
+          );
+        }
+      }
+
+    }
+    $form['middle_markup1'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '</div>',
+    );
+    $form['past_event']     = array(
+      '#type'          => 'checkbox',
+      '#title'         => t('Hide Past Events'),
+      '#default_value' => $hidev,
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+    );
+    $form['dp_fieldset']    = array(
+      '#type' => 'markup',
+
+    );
+    $form['dp_markup']      = array(
+      '#type'   => 'markup',
+      '#prefix' => '<h4 style="border-bottom: 1px solid #bebfb9; padding-bottom: 5px;">' . t('Display Options') . '</h4><div class="wrape_container">',
+    );
+    $form['wtype']          = array(
+      '#type'          => 'select',
+      '#title'         => t('Widget Type'),
+      '#default_value' => $wtype,
+      // '#attributes' => array('sv' => $evtype),.
+      '#prefix'        => '<div class="wrape">',
+      '#validated'     => TRUE,
+      '#suffix'        => '</div>',
+      '#options'       => array(
+        'view'  => t('List'),
+        'combo' => t('Mini Calendar + List'),
+      ),
+    );
+
+    $form['wstyle'] = array(
+      '#type'          => 'select',
+      '#title'         => t('Style'),
+      '#default_value' => $wstyle,
+      // '#attributes' => array('sv' => $evtype),.
+      '#prefix'        => '<div class="wrape">',
+      '#validated'     => TRUE,
+      '#suffix'        => '</div>',
+      '#options'       => array(
+        'modern' => t('Modern'),
+        ' '      => t('Classic'),
+        'card'   => t('Card'),
+        'none'   => t('None'),
+      ),
+    );
+
+    $form['h_desc'] = array(
+      '#type'          => 'checkbox',
+      '#title'         => t('Hide Descriptions'),
+      '#default_value' => $h_desc,
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+    );
+
+    $form['t_desc'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $t_desc,
+      '#title'         => t('Truncate Descriptions'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+      '#states'        => array(
+        'visible' => array(
+          ':input[name="h_desc"]' => array("checked" => FALSE),
+        ),
+      ),
+    );
+
+    $form['r_desc'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $r_desc,
+      '#title'         => t('Render HTML in Descriptions'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+      '#states'        => array(
+        'visible' => array(
+          ':input[name="h_desc"]' => array("checked" => FALSE),
+        ),
+      ),
+    );
+
+    $form['h_img'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $h_img,
+      '#title'         => t('Hide Event Images'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+    );
+
+    $form['h_et'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $h_et,
+      '#title'         => t('Hide Event Times'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+    );
+
+    $form['h_fd'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $h_fd,
+      '#title'         => t('Hide Filter Dropdown'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+      '#states'        => array(
+        'visible' => array(
+          ':input[name="wtype"]' => array('value' => 'combo'),
+        ),
+      ),
+    );
+
+    $form['olnw'] = array(
+      '#type'          => 'checkbox',
+      '#default_value' => $olnw,
+      '#title'         => t('Open Links in New Window'),
+      '#prefix'        => '<div class="wrape">',
+      '#suffix'        => '</div>',
+    );
+
+    $form['embed_tag'] = array(
+      '#type'       => 'textarea',
+      '#title'      => t('Widget Embed Code'),
+      '#attributes' => array(
+        'id'       => 'embed',
+        'onclick'  => "this.focus();this.select()",
+        'readonly' => 'readonly',
+      ),
+      '#resizable'  => FALSE,
+      '#prefix'     => '<div class="wrape embed">',
+      '#suffix'     => '</div>',
+    );
+
+    if (isset($_GET['id'])) {
+      $submit_text = t('Update Block');
+    }
+    else {
+      $submit_text = t('Save as New Block');
+    }
+    $form['save_widget']           = array(
+      '#type'  => 'submit',
+      '#value' => $submit_text,
+    );
+    $form['genrate_embedded_code'] = array(
+      '#type'   => 'markup',
+      '#prefix' => '<a class="button" href="javascript:void(0)" name="genrate_embedded_code" id="generation_code">' . t('Generate Embed Code') . '</a>',
+    );
+    $form['footer_markup']         = array(
+      '#type'   => 'markup',
+      '#suffix' => '</div></div></div>',
+    );
+  }
+
+  return $form;
+
 }
 
-//All filter call here.....
-function localist_filters_level_call($k,$filter_arr,$counter){
-		//foreach
-		$child_arr=array();
-		$nbsp = '';
-		$i = '';
-		//$list_html= '';
-		for($i=1;$i<=$counter;$i++){
-			$nbsp .= '-';
-		}
-		if(isset($filter_arr[$k]) && !empty($filter_arr[$k])){
-			foreach($filter_arr[$k] as $d =>$val){
-				//$list_html.='<option value="'.$d.'">'.$nbsp.$val.'</option>';
-				$child_arr[$d]=$nbsp.$val;
-				//check if this child has some grand child
-				if(isset($filter_arr[$d])){
-					$counter++;
-					//filters_level_call($d,$filter_arr,$counter);
-					foreach($filter_arr[$d] as $gk => $gv){
-						$child_arr[$gk]=$nbsp.$nbsp.$gv;
-					}
-
-				}
-			}
-		}
-		return $child_arr;
+/**
+ * Page callback: handle changing the Localist Calendar URL.
+ */
+function localist_save_lurl(&$form_state, $form) {
+  $response = localist_check_localist_validity($_GET['lurl']);
+  if ($response == 'true') {
+    variable_set('localist_url', $_GET['lurl']);
+    echo 1;
+  }
+  else {
+    echo 0;
+  }
 }
-function localist_check_localist_validity($url){
-		$headers = get_headers($url.'/api/2/organizations',1);
-		if($headers[0] == 'HTTP/1.1 200 OK'){
-			return "true";
-		}else{
-			return "false";
-		}
-	}
+
+/**
+ * Form submission handler for localist_my_form().
+ *
+ * @see localist_my_form()
+ */
+function localist_my_form_submit($form, &$form_state) {
+  global $base_url;
+  variable_set('localist_url', $form_state['values']['url']);
+
+  $data = $form_state;
+
+  $blk_name = $form_state['values']['blk_name'];
+  form_load_include($form_state, 'inc', 'block', 'block.admin');
+
+  $genr = $form_state['values']['embed_tag'];
+
+  if ($form['#attributes']['status'] == 'new') {
+
+    $get_block_id = db_query("SELECT id FROM `localist_blocks_data` ORDER BY id DESC LIMIT 1")->fetchAll();
+
+    if (empty($get_block_id)) {
+      $b_id = 1;
+    }
+    else {
+      $b_id = $get_block_id[0]->id + 1;
+    }
+
+    /*echo "<pre>";
+    print_r($get_block_id_description);exit;
+     */
+    $title                = $blk_name;
+    $description          = $blk_name . '(' . $b_id . ')';
+    $form_state           = array();
+    $form_state['values'] = array(
+      'title'      => $title,
+      'info'       => $description,
+      'visibility' => '0',
+      'pages'      => NULL,
+      'custom'     => '0',
+      // The block isn't visible initially.
+      'regions'    => array(
+        'seven'  => '-1',
+        'stark'  => '-1',
+        'bartik' => '-1',
+      ),
+      'body'       => array(
+        'value'  => $genr,
+        'format' => 'full_html',
+      ),
+    );
+    drupal_form_submit('block_add_block_form', $form_state);
+    $get_block_id = db_query("SELECT bid FROM `block_custom` ORDER BY bid DESC LIMIT 1")->fetchAll();
+    $b_id         = $get_block_id[0]->bid;
+    if (isset($b_id)) {
+      localist_insert_data_to_table($data, $b_id);
+    }
+
+    drupal_goto($base_url . "/admin/config/system/localist");
+
+  }
+  elseif ($form['#attributes']['status'] == 'edit') {
+    $delta_id = $_GET['id'];
+    if (isset($delta_id)) {
+      $result = db_update('block_custom')
+        ->fields(array(
+          'body' => $genr,
+          'info' => @$blk_name . '(' . @$b_id . ')',
+        ))
+        ->condition('bid', $delta_id, '=')
+        ->execute();
+
+      $result2 = db_update('block')
+        ->fields(array(
+          'title' => $blk_name,
+
+        ))
+        ->condition('delta', $delta_id, '=')
+        ->execute();
+    }
+
+    $form_state['http_redirect()ect'] = $base_url . "/admin/config/system/localist";
+
+    localist_update_data_to_table($data, $delta_id);
+    drupal_set_message(t('Your Localist Calendar block has been updated'));
+    drupal_goto($base_url . "/admin/config/system/localist");
+  }
+
+}
+
+/**
+ * Stores data for a new Localist block.
+ *
+ * @param array $data
+ *   Data to store.
+ * @param int $bid
+ *   Block ID.
+ *
+ * @return InsertQuery
+ *   insert query result.
+ */
+function localist_insert_data_to_table($data, $bid) {
+  $result = db_insert('localist_blocks_data')
+    ->fields(array(
+      'data'     => serialize($data),
+      'block_id' => $bid,
+    ))->execute();
+
+  return $result;
+}
+
+/**
+ * Updates data for an existing Localist block.
+ *
+ * @param array $data
+ *   Data to store.
+ * @param int $delta_id
+ *   Block ID.
+ *
+ * @return UpdateQuery
+ *   update query result.
+ */
+function localist_update_data_to_table($data, $delta_id) {
+  // $block_id = $_GET['id'];.
+  if (isset($delta_id)) {
+    $result = db_update('localist_blocks_data')
+      ->fields(array(
+        'data'     => serialize($data),
+        'block_id' => $delta_id,
+      ))
+      ->condition('block_id', $delta_id, '=')
+      ->execute();
+
+    return $result;
+  }
+}
+
+/**
+ * Page callback: Displays a list of previously created Localist Widget blocks.
+ */
+function localist_blocks_listing_form() {
+  $search_data = db_select('localist_blocks_data', 'lbd')
+    ->fields('lbd')
+    ->execute()
+    ->fetchAll();
+  foreach ($search_data as $val) {
+    $block_data[] = unserialize($val->data);
+    $block_id[]   = $val->block_id;
+  }
+  if (!empty($block_data)) {
+    foreach ($block_data as $val2) {
+      $data_values[] = $val2['values'];
+      $data_inputs[] = $val2['input'];
+    }
+  }
+  global $base_url;
+  $form = array();
+  if (!empty($data_values)) {
+    foreach ($data_values as $v3) {
+      $block_names[] = $v3['blk_name'];
+    }
+  }
+  $form['edit_block_markup'] = array(
+    '#type'   => 'markup',
+    '#prefix' => '<h4 style="border-bottom: 1px solid #bebfb9; padding-bottom: 5px;">' . t('Update Block Configurations') . '</h4><table id="blocks" class="sticky-enabled tabledrag-processed tableheader-processed sticky-table"><thead><tr><th>' . t('Block Name') . '</th><th>' . t('Operations') . '</th></tr></thead><tbody>',
+  );
+  if (!empty($block_names)) {
+    foreach ($block_names as $r => $u) {
+      $bl_id[$block_id[$r]] = $u;
+    }
+  }
+  if (!empty($bl_id)) {
+    foreach ($bl_id as $k2 => $v2) {
+      $form['blocks_markup' . $k2] = array(
+        '#type'   => 'markup',
+        '#prefix' => '<tr><td>' . $v2 . '</td> <td><a href="' . $base_url . '/admin/config/system/localist?id=' . $k2 . '">' . t('Configure') . '</a> </td></tr>',
+      );
+    }
+  }
+  $form['footer_markup2'] = array(
+    '#type'   => 'markup',
+    '#suffix' => '</tbody></table>',
+  );
+
+  return $form;
+}
+
+/**
+ * Get all results....
+ */
+function localist_get_all_results($url, $total) {
+  if (isset($url)) {
+    $res = array();
+    for ($i = 1; $i <= $total; $i++) {
+      if ($cached = cache_get($url . '&page=' . $i, 'cache')) {
+        $json = $cached->data;
+      }
+      else {
+        $request_url = $url . '&page=' . $i;
+        $response = drupal_http_request($request_url);
+        $json = $response->data;
+        cache_set($url . '&page=' . $i, $json, 'cache', time() + 60 * 60 * 24);
+      }
+
+      // $json = file_get_contents($url.'&page='.$i);.
+      $jsn_opt = json_decode($json);
+      if (isset($jsn_opt)) {
+        foreach ($jsn_opt as $jsn) {
+          if (is_array($jsn) || is_object($jsn)) {
+            foreach ($jsn as $v) {
+              if (is_array($v) || is_object($v)) {
+                foreach ($v as $m => $n) {
+                  $name          = $v->$m->name;
+                  $urlname       = $v->$m->urlname;
+                  $res[$urlname] = $name;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return $res;
+  }
+}
+
+/**
+ * All filter call here.....
+ */
+function localist_filters_level_call($k, $filter_arr, $counter) {
+  // Foreach.
+  $child_arr = array();
+  $nbsp      = '';
+  $i         = '';
+  // $list_html= '';.
+  for ($i = 1; $i <= $counter; $i++) {
+    $nbsp .= '-';
+  }
+  if (isset($filter_arr[$k]) && !empty($filter_arr[$k])) {
+    foreach ($filter_arr[$k] as $d => $val) {
+      // $list_html.='<option value="'.$d.'">'.$nbsp.$val.'</option>';.
+      $child_arr[$d] = $nbsp . $val;
+      // Check if this child has some grand child.
+      if (isset($filter_arr[$d])) {
+        $counter++;
+        // filters_level_call($d,$filter_arr,$counter);.
+        foreach ($filter_arr[$d] as $gk => $gv) {
+          $child_arr[$gk] = $nbsp . $nbsp . $gv;
+        }
+
+      }
+    }
+  }
+
+  return $child_arr;
+}
+
+/**
+ * Validate if a URL is a valid Localist calendar.
+ *
+ * @param string $url
+ *   The URL to check.
+ *
+ * @return string
+ *   "true" or "false" if the URL is a valid Localist calendar.
+ */
+function localist_check_localist_validity($url) {
+  $headers = get_headers($url . '/api/2/organizations', 1);
+  if ($headers[0] == 'HTTP/1.1 200 OK') {
+    return "true";
+  }
+  else {
+    return "false";
+  }
+}
